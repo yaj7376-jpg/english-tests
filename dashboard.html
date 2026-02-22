@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teacher Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.97.0/dist/umd/supabase.min.js"></script>
+  <style>
+    :root {
+      --primary:      #2a7d6e;
+      --primary-dark: #1f6057;
+      --primary-pale: #eaf5f3;
+      --accent:       #1a5f7a;
+      --border:       #cce3de;
+      --muted:        #6b8480;
+      --text:         #1e2d2b;
+      --white:        #ffffff;
+      --wrong:        #1e3a5c;
+      --correct:      #27805a;
+      --correct-bg:   #eaf5ee;
+      --neutral-bg:   #f7faf9;
+      --radius:       10px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 16px;
+      background: var(--neutral-bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* User bar */
+    #user-bar {
+      background: var(--primary-dark);
+      color: var(--white);
+      padding: 10px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+    }
+    #user-bar a { color: rgba(255,255,255,0.75); text-decoration: none; }
+    #user-bar a:hover { color: var(--white); }
+    #logout-btn {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: var(--white);
+      border-radius: 6px;
+      padding: 4px 14px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #logout-btn:hover { background: rgba(255,255,255,0.25); }
+
+    header {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
+      color: var(--white);
+      padding: 28px 28px 22px;
+    }
+    header h1 { font-size: 1.5rem; font-weight: 700; }
+    header p  { margin-top: 4px; opacity: 0.85; font-size: 0.95rem; }
+
+    main { max-width: 960px; margin: 0 auto; padding: 32px 20px; }
+
+    /* Filter bar */
+    .filter-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .filter-bar label { font-size: 0.9rem; color: var(--muted); }
+    .filter-bar select {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--white);
+      outline: none;
+    }
+
+    /* Stats strip */
+    .stats-strip {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+    .stat-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 24px;
+      flex: 1;
+      min-width: 140px;
+      text-align: center;
+    }
+    .stat-card .stat-num { font-size: 2rem; font-weight: 800; color: var(--primary-dark); line-height: 1; }
+    .stat-card .stat-label { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+
+    /* Table */
+    .table-wrap {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+    thead { background: var(--primary-pale); }
+    th {
+      padding: 12px 18px;
+      text-align: left;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--primary-dark);
+      font-weight: 700;
+      border-bottom: 1px solid var(--border);
+    }
+    td { padding: 12px 18px; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--primary-pale); }
+
+    .score-pill {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 99px;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+    .score-high { background: var(--correct-bg); color: var(--correct); }
+    .score-mid  { background: #fff8e1; color: #c47b00; }
+    .score-low  { background: #eef2f8; color: var(--wrong); }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+    .empty-state p { margin-top: 8px; font-size: 0.95rem; }
+
+    /* Auth overlay */
+    #auth-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--primary-pale);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .auth-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 40px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+    .auth-card h2 { font-size: 1.3rem; color: var(--primary-dark); margin-bottom: 6px; }
+    .auth-card p  { font-size: 0.88rem; color: var(--muted); margin-bottom: 24px; }
+    .auth-field { margin-bottom: 16px; }
+    .auth-field label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; }
+    .auth-field input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 1rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .auth-field input:focus { border-color: var(--primary); }
+    .auth-submit {
+      width: 100%;
+      background: var(--primary);
+      color: var(--white);
+      border: none;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 4px;
+    }
+    .auth-submit:hover { background: var(--primary-dark); }
+    .auth-error {
+      color: var(--wrong);
+      font-size: 0.85rem;
+      margin-top: 10px;
+      display: none;
+    }
+    .auth-error.show { display: block; }
+
+    #access-denied {
+      display: none;
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--wrong);
+    }
+    #access-denied h2 { font-size: 1.3rem; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+
+<!-- Auth overlay -->
+<div id="auth-overlay">
+  <div class="auth-card">
+    <h2>Teacher Login</h2>
+    <p>Sign in to view student results.</p>
+    <div class="auth-field">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="your@email.com">
+    </div>
+    <div class="auth-field">
+      <label>Password</label>
+      <input type="password" id="login-password" placeholder="••••••••">
+    </div>
+    <button class="auth-submit" onclick="login()">Sign In</button>
+    <div class="auth-error" id="auth-error"></div>
+  </div>
+</div>
+
+<!-- User bar -->
+<div id="user-bar" style="display:none">
+  <span id="user-email"></span>
+  <div style="display:flex;gap:16px;align-items:center;">
+    <a href="test-present-simple.html">← Back to test</a>
+    <button id="logout-btn" onclick="logout()">Log out</button>
+  </div>
+</div>
+
+<!-- Access denied (non-teacher) -->
+<div id="access-denied">
+  <h2>🚫 Access Denied</h2>
+  <p>This page is for teachers only.</p>
+</div>
+
+<header>
+  <h1>Teacher Dashboard</h1>
+  <p>Student results at a glance.</p>
+</header>
+
+<main>
+  <div class="filter-bar">
+    <label>Test:</label>
+    <select id="test-filter" onchange="renderTable()">
+      <option value="">All tests</option>
+    </select>
+    <label style="margin-left:12px">Student:</label>
+    <select id="student-filter" onchange="renderTable()">
+      <option value="">All students</option>
+    </select>
+  </div>
+
+  <div class="stats-strip" id="stats-strip"></div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Test</th>
+          <th>Score</th>
+          <th>Attempt</th>
+          <th>Date & Time</th>
+        </tr>
+      </thead>
+      <tbody id="results-body">
+        <tr><td colspan="5" class="empty-state"><p>Loading…</p></td></tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<script>
+const SUPABASE_URL = 'https://knbqhsusbgbnsdetrqwx.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuYnFoc3VzYmdibnNkZXRycXd4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3MTI2NTQsImV4cCI6MjA4NzI4ODY1NH0.nI_U9Zce6bkyic_fDEuSnVU1grOAJluAJecLqOONTrw';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let allResults = [];
+
+// ── Auth ──────────────────────────────────────
+
+async function login() {
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl    = document.getElementById('auth-error');
+  errEl.classList.remove('show');
+
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) {
+    errEl.textContent = error.message;
+    errEl.classList.add('show');
+  }
+}
+
+async function logout() {
+  await sb.auth.signOut();
+  window.location.reload();
+}
+
+// ── Init ─────────────────────────────────────
+
+sb.auth.onAuthStateChange(async (event, session) => {
+  if (!session) {
+    document.getElementById('auth-overlay').style.display = 'flex';
+    document.getElementById('user-bar').style.display = 'none';
+    return;
+  }
+
+  // Check role
+  const TEACHER_EMAILS = ['yaj7376@gmail.com'];
+  if (!TEACHER_EMAILS.includes(session.user.email)) {
+    document.getElementById('auth-overlay').style.display = 'none';
+    document.getElementById('access-denied').style.display = 'block';
+    return;
+  }
+
+  document.getElementById('auth-overlay').style.display = 'none';
+  document.getElementById('user-bar').style.display = 'flex';
+  document.getElementById('user-email').textContent = session.user.email;
+
+  await loadResults();
+});
+
+// ── Load data ────────────────────────────────
+
+async function dbGet(path) {
+  const { data: { session } } = await sb.auth.getSession();
+  const token = session?.access_token ?? SUPABASE_KEY;
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+  return res.ok ? res.json() : [];
+}
+
+async function loadResults() {
+  const results = await dbGet('test_results?select=*&order=submitted_at.desc');
+  allResults = results || [];
+  populateFilters();
+  renderTable();
+}
+
+function populateFilters() {
+  const tests    = [...new Set(allResults.map(r => r.test_name))];
+  const students = [...new Set(allResults.map(r => r.email).filter(Boolean))];
+
+  const testSel = document.getElementById('test-filter');
+  tests.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t; opt.textContent = t;
+    testSel.appendChild(opt);
+  });
+
+  const stuSel = document.getElementById('student-filter');
+  students.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s; opt.textContent = s;
+    stuSel.appendChild(opt);
+  });
+}
+
+// ── Render ───────────────────────────────────
+
+function renderTable() {
+  const testFilter    = document.getElementById('test-filter').value;
+  const studentFilter = document.getElementById('student-filter').value;
+
+  let rows = allResults.filter(r => {
+    if (testFilter    && r.test_name !== testFilter)          return false;
+    if (studentFilter && r.email !== studentFilter) return false;
+    return true;
+  });
+
+  // Stats
+  const uniqueStudents = new Set(rows.map(r => r.email)).size;
+  const avgScore = rows.length
+    ? Math.round(rows.reduce((s, r) => s + Math.round(r.score / r.total * 100), 0) / rows.length)
+    : 0;
+  const bestScore = rows.length
+    ? Math.max(...rows.map(r => Math.round(r.score / r.total * 100)))
+    : 0;
+
+  document.getElementById('stats-strip').innerHTML = `
+    <div class="stat-card"><div class="stat-num">${rows.length}</div><div class="stat-label">Submissions</div></div>
+    <div class="stat-card"><div class="stat-num">${uniqueStudents}</div><div class="stat-label">Students</div></div>
+    <div class="stat-card"><div class="stat-num">${avgScore}%</div><div class="stat-label">Average score</div></div>
+    <div class="stat-card"><div class="stat-num">${bestScore}%</div><div class="stat-label">Best score</div></div>
+  `;
+
+  const tbody = document.getElementById('results-body');
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><p>No results yet.</p></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => {
+    const pct   = Math.round(r.score / r.total * 100);
+    const cls   = pct >= 75 ? 'score-high' : pct >= 50 ? 'score-mid' : 'score-low';
+    const date  = new Date(r.submitted_at).toLocaleString('en-GB', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+    return `
+      <tr>
+        <td>${r.email ?? '—'}</td>
+        <td>${r.test_name}</td>
+        <td><span class="score-pill ${cls}">${r.score}/${r.total} (${pct}%)</span></td>
+        <td>${r.attempt_number}</td>
+        <td>${date}</td>
+      </tr>`;
+  }).join('');
+}
+</script>
+</body>
+</html>

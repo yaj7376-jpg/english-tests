@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>English Test — Present Simple</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.97.0/dist/umd/supabase.min.js"></script>
+  <style>
+    :root {
+      --primary:       #2a7d6e;
+      --primary-dark:  #1f6057;
+      --primary-light: #3aaf9c;
+      --primary-pale:  #eaf5f3;
+      --accent:        #1a5f7a;
+      --correct:       #27805a;
+      --correct-bg:    #eaf5ee;
+      --wrong:         #1e3a5c;
+      --wrong-bg:      #eef2f8;
+      --neutral-bg:    #f7faf9;
+      --text:          #1e2d2b;
+      --muted:         #6b8480;
+      --border:        #cce3de;
+      --white:         #ffffff;
+      --radius:        10px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: 22px;
+      background: var(--neutral-bg);
+      color: var(--text);
+      line-height: 1.7;
+      min-height: 100vh;
+      padding: 0 0 60px;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
+      color: var(--white);
+      padding: 36px 24px 28px;
+      text-align: center;
+    }
+    header h1 { font-size: 1.9rem; font-weight: 700; letter-spacing: -0.3px; }
+    header p  { margin-top: 6px; opacity: 0.85; font-size: 1rem; }
+
+    /* ── Progress bar ── */
+    #progress-wrap {
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    #progress-bar-bg {
+      flex: 1;
+      height: 8px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    #progress-bar-fill {
+      height: 100%;
+      background: var(--primary-light);
+      border-radius: 99px;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    #progress-label { font-size: 0.82rem; color: var(--muted); white-space: nowrap; }
+
+    /* ── Main container ── */
+    main { max-width: 780px; margin: 0 auto; padding: 32px 20px 0; }
+
+    /* ── Section card ── */
+    .section-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 28px;
+      overflow: hidden;
+    }
+    .section-header {
+      background: var(--primary-pale);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+    }
+    .section-header h2 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+    }
+    .section-header p {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .questions-list { padding: 12px 0; }
+
+    /* ── Question row ── */
+    .question {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 14px 24px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.2s;
+    }
+    .question:last-child { border-bottom: none; }
+    .question.correct { background: var(--correct-bg); }
+    .question.wrong   { background: var(--wrong-bg); }
+
+    .q-num {
+      min-width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--primary-pale);
+      color: var(--primary-dark);
+      font-size: 0.78rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+    .question.correct .q-num { background: var(--correct); color: var(--white); }
+    .question.wrong   .q-num { background: var(--wrong);   color: var(--white); }
+
+    .q-body { flex: 1; }
+    .q-text { font-size: 0.97rem; line-height: 1.9; }
+
+    /* inline input */
+    .blank {
+      display: inline-block;
+      border: none;
+      border-bottom: 2px solid var(--primary-light);
+      background: transparent;
+      font-size: 0.97rem;
+      font-family: inherit;
+      color: var(--text);
+      padding: 1px 4px;
+      min-width: 90px;
+      outline: none;
+      text-align: center;
+      transition: border-color 0.2s;
+    }
+    .blank:focus { border-bottom-color: var(--primary-dark); }
+    .blank.correct-input { border-bottom-color: var(--correct); color: var(--correct); font-weight: 600; }
+    .blank.wrong-input   { border-bottom-color: var(--wrong);   color: var(--wrong); }
+
+    .hint {
+      display: inline-block;
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-left: 2px;
+    }
+
+    /* highlight for section 3 */
+    mark {
+      background: #fff176;
+      color: var(--text);
+      padding: 1px 3px;
+      border-radius: 3px;
+    }
+
+    /* free text (section 3) */
+    .q-statement {
+      font-style: italic;
+      color: #444;
+      font-size: 0.92rem;
+      margin-bottom: 7px;
+    }
+    .free-input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .free-input:focus { border-color: var(--primary-light); }
+    .free-input.correct-input { border-color: var(--correct); background: #f0faf4; }
+    .free-input.wrong-input   { border-color: var(--wrong);   background: #f0f3f9; }
+
+    /* ── Multiple choice buttons (section 2) ── */
+    .mc-blank {
+      display: inline-block;
+      min-width: 60px;
+      border-bottom: 2px solid var(--primary-light);
+      text-align: center;
+      font-weight: 600;
+      color: var(--primary-dark);
+      padding: 0 4px;
+    }
+    .mc-blank-empty { color: var(--muted); font-weight: 400; }
+
+    .mc-group { margin-top: 10px; }
+    .mc-label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 5px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .mc-options { display: flex; gap: 8px; flex-wrap: wrap; }
+    .mc-btn {
+      padding: 7px 18px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      background: var(--white);
+      color: var(--text);
+      font-size: 1rem;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-weight: 500;
+    }
+    /* ── Hints ── */
+    .hint-btn {
+      display: none;
+      margin-top: 8px;
+      background: none;
+      border: 1px dashed var(--muted);
+      color: var(--muted);
+      border-radius: 6px;
+      padding: 3px 12px;
+      font-size: 0.8rem;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .hint-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .hint-text {
+      display: none;
+      font-size: 0.85rem;
+      color: var(--primary-dark);
+      background: var(--primary-pale);
+      border-left: 3px solid var(--primary-light);
+      padding: 7px 12px;
+      border-radius: 0 6px 6px 0;
+      margin-top: 6px;
+    }
+    .hint-text.show { display: block; }
+
+    .mc-btn:hover:not(:disabled)  { border-color: var(--primary-light); background: var(--primary-pale); }
+    .mc-btn.selected               { border-color: var(--primary); background: var(--primary-pale); color: var(--primary-dark); font-weight: 700; }
+    .mc-btn.correct-btn            { border-color: var(--correct); background: var(--correct-bg); color: var(--correct); font-weight: 700; }
+    .mc-btn.wrong-btn              { border-color: var(--wrong);   background: var(--wrong-bg);   color: var(--wrong);   font-weight: 700; }
+
+    /* feedback line */
+    .feedback {
+      display: none;
+      font-size: 0.84rem;
+      margin-top: 5px;
+    }
+    .feedback.show    { display: block; }
+    .feedback.correct { color: var(--correct); }
+    .feedback.wrong   { color: var(--wrong); }
+
+    /* ── Submit / action buttons ── */
+    .submit-wrap {
+      text-align: center;
+      margin: 8px 0 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    #submit-btn {
+      background: var(--primary);
+      color: var(--white);
+      border: none;
+      border-radius: 8px;
+      padding: 14px 48px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      letter-spacing: 0.3px;
+    }
+    #submit-btn:hover  { background: var(--primary-dark); }
+    #submit-btn:active { transform: scale(0.98); }
+
+    #attempts-label {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    #show-answers-btn {
+      display: none;
+      background: transparent;
+      border: 2px solid var(--wrong);
+      color: var(--wrong);
+      border-radius: 8px;
+      padding: 10px 28px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    #show-answers-btn:hover { background: var(--wrong); color: var(--white); }
+
+    /* ── Results panel ── */
+    #results {
+      display: none;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 36px 28px;
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    #results.show { display: block; }
+
+    .score-circle {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: conic-gradient(var(--primary-light) 0deg, var(--border) 0deg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      position: relative;
+    }
+    .score-circle::before {
+      content: '';
+      position: absolute;
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      background: var(--white);
+    }
+    .score-pct {
+      position: relative;
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--primary-dark);
+      line-height: 1;
+    }
+    .score-sub {
+      position: relative;
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    #results h2 { font-size: 1.4rem; color: var(--primary-dark); margin-bottom: 8px; }
+    #result-breakdown { color: var(--muted); font-size: 0.95rem; margin-bottom: 16px; }
+    #recommendation {
+      background: var(--primary-pale);
+      border-left: 4px solid var(--primary-light);
+      border-radius: 6px;
+      padding: 14px 18px;
+      font-size: 0.95rem;
+      color: var(--primary-dark);
+      text-align: left;
+      margin-top: 16px;
+    }
+
+    .result-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 24px; }
+
+    #retry-btn {
+      background: var(--primary);
+      color: var(--white);
+      border: 2px solid var(--primary);
+      border-radius: 8px;
+      padding: 10px 28px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    #retry-btn:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+
+    #fresh-btn {
+      background: transparent;
+      border: 2px solid var(--muted);
+      color: var(--muted);
+      border-radius: 8px;
+      padding: 10px 28px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    #fresh-btn:hover { border-color: var(--text); color: var(--text); }
+
+    @media (max-width: 560px) {
+      header h1 { font-size: 1.4rem; }
+      .question { padding: 12px 16px; }
+      main { padding: 20px 12px 0; }
+    }
+
+    /* ── User bar ── */
+    #user-bar {
+      background: var(--primary-dark);
+      color: var(--white);
+      padding: 10px 28px;
+      display: none;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+    }
+    #user-bar a { color: rgba(255,255,255,0.75); text-decoration: none; margin-right: 16px; }
+    #user-bar a:hover { color: var(--white); }
+    #logout-btn {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: var(--white);
+      border-radius: 6px;
+      padding: 4px 14px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #logout-btn:hover { background: rgba(255,255,255,0.25); }
+
+    /* ── Auth overlay ── */
+    #auth-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--primary-pale);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .auth-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 40px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+    .auth-card h2 { font-size: 1.4rem; color: var(--primary-dark); margin-bottom: 6px; }
+    .auth-card p  { font-size: 0.9rem; color: var(--muted); margin-bottom: 24px; }
+    .auth-tabs { display: flex; gap: 0; margin-bottom: 24px; border-bottom: 2px solid var(--border); }
+    .auth-tab {
+      padding: 8px 20px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--muted);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .auth-tab.active { color: var(--primary-dark); border-bottom-color: var(--primary); }
+    .auth-field { margin-bottom: 16px; }
+    .auth-field label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; color: var(--text); }
+    .auth-field input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 1rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .auth-field input:focus { border-color: var(--primary); }
+    .auth-submit {
+      width: 100%;
+      background: var(--primary);
+      color: var(--white);
+      border: none;
+      border-radius: 8px;
+      padding: 13px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 4px;
+      font-family: inherit;
+    }
+    .auth-submit:hover { background: var(--primary-dark); }
+    .auth-submit:disabled { opacity: 0.6; cursor: default; }
+    .auth-message {
+      font-size: 0.85rem;
+      margin-top: 10px;
+      display: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+    }
+    .auth-message.error   { display: block; color: var(--wrong); background: var(--wrong-bg); }
+    .auth-message.success { display: block; color: var(--correct); background: var(--correct-bg); }
+  </style>
+</head>
+<body>
+
+<!-- Auth overlay -->
+<div id="auth-overlay">
+  <div class="auth-card">
+    <h2>English Tests</h2>
+    <p>Sign in or create an account to begin.</p>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('login')">Sign In</button>
+      <button class="auth-tab" onclick="switchTab('signup')">Sign Up</button>
+    </div>
+    <div class="auth-field">
+      <label>Email</label>
+      <input type="email" id="auth-email" placeholder="your@email.com" onkeydown="if(event.key==='Enter')authSubmit()">
+    </div>
+    <div class="auth-field">
+      <label>Password</label>
+      <input type="password" id="auth-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')authSubmit()">
+    </div>
+    <button class="auth-submit" id="auth-submit-btn" onclick="authSubmit()">Sign In</button>
+    <div class="auth-message" id="auth-message"></div>
+  </div>
+</div>
+
+<!-- User bar -->
+<div id="user-bar">
+  <span id="user-email-label"></span>
+  <div style="display:flex;gap:12px;align-items:center;">
+    <a id="dashboard-link" href="dashboard.html" style="display:none">📊 Dashboard</a>
+    <button id="logout-btn" onclick="logout()">Log out</button>
+  </div>
+</div>
+
+<header>
+  <h1>Present Simple</h1>
+  <p>Complete all three sections, then submit to see your score.</p>
+</header>
+
+<div id="progress-wrap">
+  <div id="progress-bar-bg"><div id="progress-bar-fill"></div></div>
+  <span id="progress-label">0 / 43 answered</span>
+</div>
+
+<main>
+
+  <!-- ── SECTION 1 ── -->
+  <div class="section-card">
+    <div class="section-header">
+      <h2>Section 1 — Open the brackets</h2>
+      <p>Do we need to add -s to the verbs? Open the brackets and write the correct form.</p>
+    </div>
+    <div class="questions-list" id="s1-list"></div>
+  </div>
+
+  <!-- ── SECTION 2 ── -->
+  <div class="section-card">
+    <div class="section-header">
+      <h2>Section 2 — Choose the correct word</h2>
+      <p>Choose the correct word for each gap.</p>
+    </div>
+    <div class="questions-list" id="s2-list"></div>
+  </div>
+
+  <!-- ── SECTION 3 ── -->
+  <div class="section-card">
+    <div class="section-header">
+      <h2>Section 3 — Ask a question</h2>
+      <p>Ask a question so that the <mark>highlighted phrase</mark> is the answer.</p>
+      <p style="margin-top:6px; color: var(--primary-dark); font-size:0.88rem;">
+        <strong>Example:</strong> I wake up <mark>at 7am</mark>. → <em>When / What time do you wake up?</em>
+      </p>
+    </div>
+    <div class="questions-list" id="s3-list"></div>
+  </div>
+
+  <!-- Submit area -->
+  <div class="submit-wrap">
+    <span id="attempts-label"></span>
+    <button id="submit-btn" onclick="submitTest()">Submit Test →</button>
+    <button id="show-answers-btn" onclick="revealAnswers()">Show Answers</button>
+  </div>
+
+  <!-- Results -->
+  <div id="results">
+    <div class="score-circle" id="score-circle">
+      <span class="score-pct" id="score-pct">0%</span>
+      <span class="score-sub" id="score-sub">0/43</span>
+    </div>
+    <h2 id="result-title">Your results</h2>
+    <p id="result-breakdown"></p>
+    <div id="recommendation"></div>
+    <div class="result-btns">
+      <button id="retry-btn" onclick="fixAnswers()">Fix My Answers</button>
+      <button id="fresh-btn" onclick="startFresh()">Start Fresh</button>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ─────────────────────────────────────────────
+// SUPABASE
+// ─────────────────────────────────────────────
+
+const SUPABASE_URL = 'https://knbqhsusbgbnsdetrqwx.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuYnFoc3VzYmdibnNkZXRycXd4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3MTI2NTQsImV4cCI6MjA4NzI4ODY1NH0.nI_U9Zce6bkyic_fDEuSnVU1grOAJluAJecLqOONTrw';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const TEST_NAME = 'Present Simple';
+let currentUser = null;
+
+// ── Auth UI ──────────────────────────────────
+
+let authMode = 'login';
+
+function switchTab(mode) {
+  authMode = mode;
+  document.querySelectorAll('.auth-tab').forEach((t, i) => {
+    t.classList.toggle('active', (mode === 'login' && i === 0) || (mode === 'signup' && i === 1));
+  });
+  document.getElementById('auth-submit-btn').textContent = mode === 'login' ? 'Sign In' : 'Create Account';
+  const msg = document.getElementById('auth-message');
+  msg.className = 'auth-message';
+  msg.textContent = '';
+}
+
+async function authSubmit() {
+  const email    = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const btn      = document.getElementById('auth-submit-btn');
+  const msg      = document.getElementById('auth-message');
+
+  if (!email || !password) return;
+  btn.disabled = true;
+  msg.className = 'auth-message';
+
+  let error;
+  if (authMode === 'login') {
+    ({ error } = await sb.auth.signInWithPassword({ email, password }));
+  } else {
+    ({ error } = await sb.auth.signUp({ email, password }));
+    if (!error) {
+      msg.textContent = 'Account created! Check your email to confirm, then sign in.';
+      msg.className = 'auth-message success';
+      btn.disabled = false;
+      return;
+    }
+  }
+
+  if (error) {
+    msg.textContent = error.message;
+    msg.className = 'auth-message error';
+  }
+  btn.disabled = false;
+}
+
+async function logout() {
+  await sb.auth.signOut();
+  window.location.reload();
+}
+
+// ── Auth state ───────────────────────────────
+
+sb.auth.onAuthStateChange(async (event, session) => {
+  if (!session) {
+    document.getElementById('auth-overlay').style.display = 'flex';
+    document.getElementById('user-bar').style.display = 'none';
+    return;
+  }
+
+  currentUser = session.user;
+  document.getElementById('auth-overlay').style.display = 'none';
+  document.getElementById('user-bar').style.display = 'flex';
+  document.getElementById('user-email-label').textContent = session.user.email;
+
+  // Show dashboard link for teachers
+  const TEACHER_EMAILS = ['yaj7376@gmail.com'];
+  if (TEACHER_EMAILS.includes(session.user.email)) {
+    document.getElementById('dashboard-link').style.display = 'inline';
+  }
+
+  // Fetch existing attempt count for this user + test
+  const existing = await dbGet('test_results',
+    `select=attempt_number&user_id=eq.${session.user.id}&test_name=eq.${encodeURIComponent(TEST_NAME)}&order=attempt_number.desc&limit=1`);
+
+  if (existing && existing.length > 0) {
+    attemptCount = existing[0].attempt_number;
+    updateHintVisibility();
+    if (attemptCount >= MAX_ATTEMPTS) {
+      document.getElementById('attempts-label').textContent = `You've used all ${MAX_ATTEMPTS} attempts.`;
+      document.getElementById('show-answers-btn').style.display = 'inline-block';
+    } else {
+      document.getElementById('attempts-label').textContent = `Attempt ${attemptCount} of ${MAX_ATTEMPTS}`;
+    }
+  }
+});
+
+// ── Raw fetch helper (bypasses Supabase JS client for DB calls) ──
+
+async function dbPost(table, body) {
+  const { data: { session } } = await sb.auth.getSession();
+  const token = session?.access_token ?? SUPABASE_KEY;
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal',
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) console.error('dbPost error:', await res.text());
+}
+
+async function dbGet(table, params = '') {
+  const { data: { session } } = await sb.auth.getSession();
+  const token = session?.access_token ?? SUPABASE_KEY;
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, {
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+  return res.ok ? res.json() : [];
+}
+
+// ── Save result ──────────────────────────────
+
+async function saveResult(score, total) {
+  if (!currentUser) return;
+  await dbPost('test_results', {
+    user_id:        currentUser.id,
+    email:          currentUser.email,
+    test_name:      TEST_NAME,
+    score:          score,
+    total:          total,
+    attempt_number: attemptCount,
+  });
+}
+
+// ─────────────────────────────────────────────
+// DATA
+// ─────────────────────────────────────────────
+
+const section1 = [
+  { before: "The gallery",                        verb: "open",   after: "at 8.",                             answers: ["opens"] },
+  { before: "Your girlfriend",                    verb: "seem",   after: "nice.",                             answers: ["seems"] },
+  { before: "Why do they",                        verb: "argue",  after: "all the time?",                     answers: ["argue"] },
+  { before: "Me and my mum often",                verb: "go",     after: "shopping together.",                answers: ["go"] },
+  { before: "Where does he",                      verb: "live",   after: "?",                                 answers: ["live"] },
+  { before: "She usually",                        verb: "have",   after: "breakfast at home.",                answers: ["has"] },
+  { before: "My colleague",                       verb: "speak",  after: "five languages fluently.",          answers: ["speaks"] },
+  { before: "Do your parents",                    verb: "help",   after: "you financially?",                  answers: ["help"] },
+  { before: "Lady Gaga",                          verb: "wear",   after: "weird clothes.",                    answers: ["wears"] },
+  { before: "What time does the concert",         verb: "start",  after: "?",                                 answers: ["start"] },
+  { before: "Madonna",                            verb: "do",     after: "yoga.",                             answers: ["does"] },
+  { before: "My cat",                             verb: "sleep",  after: "all the time.",                     answers: ["sleeps"] },
+  { before: "When does he",                       verb: "do",     after: "exercise?",                         answers: ["do"] },
+  { before: "Jack is crazy about TV series, he",  verb: "watch",  after: "them non-stop.",                    answers: ["watches"] },
+  { before: "My boyfriend and I",                 verb: "travel", after: "a lot.",                            answers: ["travel"] },
+];
+
+const section2 = [
+  { parts: ["",          " you tired after the flight?"],                          answers: [["are"]],  capitalise: true  },
+  { parts: ["What time ", " you usually finish work?"],                            answers: [["do"]]  },
+  { parts: ["Why ",      " you angry?"],                                           answers: [["are"]] },
+  { parts: ["Where ",    " Jane live?"],                                           answers: [["does"]] },
+  { parts: ["",          " you and your dad get on well?"],                        answers: [["do"]],   capitalise: true  },
+  { parts: ["What ",     " your favourite colour?"],                               answers: [["is"]]  },
+  { parts: ["Sorry I ",  " late. The traffic ",  " terrible."],                    answers: [["am"], ["is"]] },
+  { parts: ["Where ",    " my keys?"],                                             answers: [["are"]] },
+  { parts: ["",          " it rain a lot here?"],                                  answers: [["does"]], capitalise: true, hint: "It rains a lot where I live."  },
+  { parts: ["What ",     " you and your best friend have in common?"],             answers: [["do"]]  },
+];
+
+const section3 = [
+  { statement: "Ellen lives in <mark>the north of the country</mark>.",                       answers: ["Where does Ellen live?"] },
+  { statement: "The match finishes <mark>at 9pm</mark>.",                                     answers: ["What time does the match finish?", "When does the match finish?"] },
+  { statement: "We go to the cinema <mark>at weekends</mark>.",                               answers: ["When do you go to the cinema?"] },
+  { statement: "I go shopping <mark>on Tuesday mornings</mark> when it's quiet.",             answers: ["When do you go shopping?"] },
+  { statement: "I do my shopping <mark>once a week</mark> at the supermarket.",               answers: ["How often do you do your shopping?", "How often do you do your shopping at the supermarket?"] },
+  { statement: "Pam and Nick have <mark>5 children</mark>.",                                  answers: ["How many children do Pam and Nick have?"], hint: "Word order." },
+  { statement: "They all listen to <mark>rock music</mark>.",                                 answers: ["What kind of music do they all listen to?", "What do they all listen to?"], hint: "There are different kinds of music." },
+  { statement: "My boss goes on holiday <mark>three times a year</mark>.",                    answers: ["How often does your boss go on holiday?"] },
+  { statement: "We normally go to bed <mark>at midnight</mark>.",                             answers: ["When do you normally go to bed?", "What time do you normally go to bed?"] },
+  { statement: "It takes me <mark>30 minutes</mark> to get to work.",                         answers: ["How long does it take you to get to work?"] },
+  { statement: "My husband <mark>always</mark> drinks coffee in the morning.",                answers: ["How often does your husband drink coffee?", "How often does your husband drink coffee in the morning?"] },
+  { statement: "My surname is Holmes. <mark>H-O-L-M-E-S</mark>.",                            answers: ["How do you spell your surname?"], hint: "How do you ... ?" },
+  { statement: "I drink about <mark>2 litres</mark> of water a day.",                         answers: ["How much water do you drink a day?"] },
+  { statement: "Nancy plays the piano <mark>very well</mark>.",                               answers: ["How well does Nancy play the piano?"], hint: "How .... does Nancy play the piano?" },
+  { statement: "I don't like chocolate <mark>because it's too sweet for me</mark>.",          answers: ["Why don't you like chocolate?"], hint: "Negative question." },
+  { statement: "Before I start work, <mark>I check my e-mail</mark>.",                        answers: ["What do you do before you start work?"] },
+];
+
+// ─────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────
+
+let attemptCount   = 0;
+const MAX_ATTEMPTS = 3;
+let totalAnswerable = 0;
+
+// ─────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────
+
+function normalize(str) {
+  return str.trim().toLowerCase().replace(/['']/g, "'").replace(/\s+/g, ' ');
+}
+
+// ─────────────────────────────────────────────
+// RENDER
+// ─────────────────────────────────────────────
+
+function buildSection1() {
+  const list = document.getElementById('s1-list');
+  section1.forEach((q, i) => {
+    totalAnswerable++;
+    const div = document.createElement('div');
+    div.className = 'question';
+    div.id = `s1q${i}`;
+    div.innerHTML = `
+      <div class="q-num">${i + 1}</div>
+      <div class="q-body">
+        <div class="q-text">
+          ${q.before}
+          <input class="blank" type="text" id="s1i${i}" autocomplete="off" spellcheck="false"
+                 oninput="updateProgress()">
+          <span class="hint">(${q.verb})</span>
+          ${q.after}
+        </div>
+        <div class="feedback" id="s1f${i}"></div>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+function buildSection2() {
+  const list    = document.getElementById('s2-list');
+  const OPTIONS_LOWER = ['am', 'is', 'are', 'do', 'does'];
+  const OPTIONS_UPPER = ['Am', 'Is', 'Are', 'Do', 'Does'];
+
+  section2.forEach((q, i) => {
+    totalAnswerable += q.answers.length;
+    const div = document.createElement('div');
+    div.className = 'question';
+    div.id = `s2q${i}`;
+
+    // Sentence with blank spans
+    let sentenceHtml = '';
+    q.parts.forEach((part, pi) => {
+      sentenceHtml += part;
+      if (pi < q.answers.length) {
+        sentenceHtml += `<span class="mc-blank mc-blank-empty" id="s2b${i}_${pi}">___</span>`;
+      }
+    });
+
+    // Option button groups (one per blank)
+    let optionsHtml = '';
+    q.answers.forEach((_, pi) => {
+      const label = q.answers.length > 1
+        ? `<div class="mc-label">Blank ${pi + 1}</div>`
+        : '';
+      const opts = q.capitalise ? OPTIONS_UPPER : OPTIONS_LOWER;
+      const btns = opts.map(opt =>
+        `<button class="mc-btn" data-group="s2i${i}_${pi}" data-value="${opt}"
+                 onclick="selectMC(this)">${opt}</button>`
+      ).join('');
+      optionsHtml += `<div class="mc-group">${label}<div class="mc-options">${btns}</div></div>`;
+    });
+
+    const hintHtml = q.hint
+      ? `<button class="hint-btn" onclick="toggleHint(this,'s2h${i}')">💡 Show hint</button>
+         <div class="hint-text" id="s2h${i}">${q.hint}</div>`
+      : '';
+
+    div.innerHTML = `
+      <div class="q-num">${i + 1}</div>
+      <div class="q-body">
+        <div class="q-text">${sentenceHtml}</div>
+        ${optionsHtml}
+        ${hintHtml}
+        <div class="feedback" id="s2f${i}"></div>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+function updateHintVisibility() {
+  const show = attemptCount >= 2;
+  document.querySelectorAll('.hint-btn').forEach(btn => {
+    btn.style.display = show ? 'inline-block' : 'none';
+  });
+}
+
+function toggleHint(btn, hintId) {
+  const hint = document.getElementById(hintId);
+  const visible = hint.classList.toggle('show');
+  btn.textContent = visible ? '💡 Hide hint' : '💡 Show hint';
+}
+
+function selectMC(btn) {
+  if (btn.disabled) return;
+  const groupId = btn.dataset.group;
+  document.querySelectorAll(`.mc-btn[data-group="${groupId}"]`).forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  // Reflect selection in the inline blank span
+  const match = groupId.match(/s2i(\d+)_(\d+)/);
+  if (match) {
+    const span = document.getElementById(`s2b${match[1]}_${match[2]}`);
+    if (span) {
+      span.textContent = btn.dataset.value;
+      span.classList.remove('mc-blank-empty');
+    }
+  }
+  updateProgress();
+}
+
+function buildSection3() {
+  const list = document.getElementById('s3-list');
+  section3.forEach((q, i) => {
+    totalAnswerable++;
+    const div = document.createElement('div');
+    div.className = 'question';
+    div.id = `s3q${i}`;
+    const hintHtml = q.hint
+      ? `<button class="hint-btn" onclick="toggleHint(this,'s3h${i}')">💡 Show hint</button>
+         <div class="hint-text" id="s3h${i}">${q.hint}</div>`
+      : '';
+
+    div.innerHTML = `
+      <div class="q-num">${i + 1}</div>
+      <div class="q-body">
+        <div class="q-statement">${q.statement}</div>
+        <input class="free-input" type="text" id="s3i${i}" autocomplete="off" spellcheck="false"
+               placeholder="Write your question here…" oninput="updateProgress()">
+        ${hintHtml}
+        <div class="feedback" id="s3f${i}"></div>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+// ─────────────────────────────────────────────
+// PROGRESS
+// ─────────────────────────────────────────────
+
+function countAnswered() {
+  let count = 0;
+  section1.forEach((_, i) => { if (document.getElementById(`s1i${i}`)?.value.trim()) count++; });
+  section2.forEach((q, i) => {
+    q.answers.forEach((_, pi) => {
+      if (document.querySelector(`.mc-btn[data-group="s2i${i}_${pi}"].selected`)) count++;
+    });
+  });
+  section3.forEach((_, i) => { if (document.getElementById(`s3i${i}`)?.value.trim()) count++; });
+  return count;
+}
+
+function updateProgress() {
+  const answered = countAnswered();
+  const pct = Math.round((answered / totalAnswerable) * 100);
+  document.getElementById('progress-bar-fill').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = `${answered} / ${totalAnswerable} answered`;
+}
+
+// ─────────────────────────────────────────────
+// SUBMIT & MARKING
+// ─────────────────────────────────────────────
+
+function submitTest() {
+  attemptCount++;
+  let correct = 0;
+  let total   = 0;
+
+  // Clear previous feedback state
+  document.querySelectorAll('.question').forEach(q => q.classList.remove('correct', 'wrong'));
+  document.querySelectorAll('.blank, .free-input').forEach(inp => {
+    inp.classList.remove('correct-input', 'wrong-input');
+  });
+  document.querySelectorAll('.mc-btn').forEach(btn => {
+    btn.classList.remove('correct-btn', 'wrong-btn');
+  });
+
+  // Section 1
+  section1.forEach((q, i) => {
+    total++;
+    const input = document.getElementById(`s1i${i}`);
+    const val   = normalize(input.value);
+    const ok    = q.answers.some(a => normalize(a) === val);
+    const row   = document.getElementById(`s1q${i}`);
+    const fb    = document.getElementById(`s1f${i}`);
+    if (ok) {
+      correct++;
+      input.classList.add('correct-input');
+      row.classList.add('correct');
+      fb.textContent = '✓ Correct';
+      fb.className = 'feedback show correct';
+    } else {
+      input.classList.add('wrong-input');
+      row.classList.add('wrong');
+      fb.textContent = '✗ Not quite — try again.';
+      fb.className = 'feedback show wrong';
+    }
+  });
+
+  // Section 2
+  section2.forEach((q, i) => {
+    let qCorrect = true;
+    q.answers.forEach((accepted, pi) => {
+      total++;
+      const selectedBtn = document.querySelector(`.mc-btn[data-group="s2i${i}_${pi}"].selected`);
+      const val = selectedBtn ? normalize(selectedBtn.dataset.value) : '';
+      const ok  = accepted.some(a => normalize(a) === val);
+      if (ok) {
+        correct++;
+        if (selectedBtn) selectedBtn.classList.add('correct-btn');
+      } else {
+        qCorrect = false;
+        if (selectedBtn) selectedBtn.classList.add('wrong-btn');
+      }
+    });
+    const row = document.getElementById(`s2q${i}`);
+    const fb  = document.getElementById(`s2f${i}`);
+    if (qCorrect) {
+      row.classList.add('correct');
+      fb.textContent = '✓ Correct';
+      fb.className = 'feedback show correct';
+    } else {
+      row.classList.add('wrong');
+      fb.textContent = '✗ Not quite — try again.';
+      fb.className = 'feedback show wrong';
+    }
+  });
+
+  // Section 3
+  section3.forEach((q, i) => {
+    total++;
+    const input       = document.getElementById(`s3i${i}`);
+    const raw         = input.value.trim();
+    const val         = normalize(raw);
+    const contentOk   = q.answers.some(a => normalize(a) === val);
+    const capitalOk   = raw.length > 0 && raw[0] === raw[0].toUpperCase() && /[A-Za-z]/.test(raw[0]);
+    const ok          = contentOk && capitalOk;
+    const row         = document.getElementById(`s3q${i}`);
+    const fb          = document.getElementById(`s3f${i}`);
+    if (ok) {
+      correct++;
+      input.classList.add('correct-input');
+      row.classList.add('correct');
+      fb.textContent = '✓ Correct';
+      fb.className = 'feedback show correct';
+    } else {
+      input.classList.add('wrong-input');
+      row.classList.add('wrong');
+      fb.textContent = contentOk && !capitalOk
+        ? '✗ Almost! Remember to start your sentence with a capital letter.'
+        : '✗ Not quite — try again.';
+      fb.className = 'feedback show wrong';
+    }
+  });
+
+  // Update attempts label
+  const remaining = MAX_ATTEMPTS - attemptCount;
+  if (remaining > 0) {
+    document.getElementById('attempts-label').textContent =
+      `Attempt ${attemptCount} of ${MAX_ATTEMPTS}`;
+  } else {
+    document.getElementById('attempts-label').textContent =
+      `You've used all ${MAX_ATTEMPTS} attempts.`;
+    document.getElementById('show-answers-btn').style.display = 'inline-block';
+  }
+
+  updateHintVisibility();
+  showResults(correct, total);
+}
+
+// ─────────────────────────────────────────────
+// REVEAL ANSWERS
+// ─────────────────────────────────────────────
+
+function revealAnswers() {
+  // Section 1
+  section1.forEach((q, i) => {
+    const input = document.getElementById(`s1i${i}`);
+    const fb    = document.getElementById(`s1f${i}`);
+    if (input.classList.contains('wrong-input')) {
+      fb.innerHTML = `Answer: <strong>${q.answers[0]}</strong>`;
+      fb.className = 'feedback show wrong';
+    }
+  });
+
+  // Section 2
+  section2.forEach((q, i) => {
+    let hasWrong = false;
+    q.answers.forEach((accepted, pi) => {
+      const selectedBtn = document.querySelector(`.mc-btn[data-group="s2i${i}_${pi}"].selected`);
+      if (selectedBtn && selectedBtn.classList.contains('wrong-btn')) {
+        hasWrong = true;
+        // Highlight the correct button
+        document.querySelectorAll(`.mc-btn[data-group="s2i${i}_${pi}"]`).forEach(b => {
+          if (normalize(b.dataset.value) === normalize(accepted[0])) b.classList.add('correct-btn');
+        });
+      }
+    });
+    if (hasWrong) {
+      const fb = document.getElementById(`s2f${i}`);
+      fb.textContent = '✗ The correct answer is highlighted above.';
+      fb.className = 'feedback show wrong';
+    }
+  });
+
+  // Section 3
+  section3.forEach((q, i) => {
+    const input = document.getElementById(`s3i${i}`);
+    const fb    = document.getElementById(`s3f${i}`);
+    if (input.classList.contains('wrong-input')) {
+      fb.innerHTML = `Answer: <strong>${q.answers[0]}</strong>`;
+      fb.className = 'feedback show wrong';
+    }
+  });
+
+  document.getElementById('show-answers-btn').style.display = 'none';
+}
+
+// ─────────────────────────────────────────────
+// RESULTS
+// ─────────────────────────────────────────────
+
+function showResults(correct, total) {
+  const pct   = Math.round((correct / total) * 100);
+  const wrong = total - correct;
+
+  saveResult(correct, total);
+
+  const deg = Math.round(pct * 3.6);
+  document.getElementById('score-circle').style.background =
+    `conic-gradient(var(--primary-light) ${deg}deg, var(--border) ${deg}deg)`;
+
+  document.getElementById('score-pct').textContent = pct + '%';
+  document.getElementById('score-sub').textContent  = `${correct}/${total}`;
+  document.getElementById('result-breakdown').textContent =
+    `${correct} correct · ${wrong} incorrect out of ${total} questions`;
+
+  let title, rec;
+  if (pct >= 90) {
+    title = '🌟 Excellent work!';
+    rec   = 'You have a strong command of the Present Simple. Keep it up — consistency is everything!';
+  } else if (pct >= 75) {
+    title = '👍 Good job!';
+    rec   = "You're doing well! Review the questions you got wrong — they may point to a pattern worth practising.";
+  } else if (pct >= 60) {
+    title = '📚 Keep going!';
+    rec   = "You're on the right track, but some areas need more practice. Focus on verb endings and question formation.";
+  } else if (pct >= 40) {
+    title = '💪 Don\'t give up!';
+    rec   = 'This topic needs more attention. Try reviewing the Present Simple rules and have another go.';
+  } else {
+    title = '🌱 Just getting started!';
+    rec   = "Don't worry — everyone starts somewhere. Study the rules for Present Simple carefully and try again.";
+  }
+
+  document.getElementById('result-title').textContent = title;
+  document.getElementById('recommendation').textContent = rec;
+
+  const resultsEl = document.getElementById('results');
+  resultsEl.classList.add('show');
+  resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ─────────────────────────────────────────────
+// FIX MY ANSWERS — keep submitted values & markings, just close results
+// ─────────────────────────────────────────────
+
+function fixAnswers() {
+  // Reset wrong feedback text (clear any revealed answers)
+  document.querySelectorAll('.feedback.wrong').forEach(fb => {
+    fb.textContent = '✗ Not quite — try again.';
+  });
+  // Remove correct-btn highlights from unselected buttons (hide revealed answers)
+  document.querySelectorAll('.mc-btn.correct-btn:not(.selected)').forEach(btn => {
+    btn.classList.remove('correct-btn');
+  });
+  document.getElementById('results').classList.remove('show');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ─────────────────────────────────────────────
+// START FRESH — full reset
+// ─────────────────────────────────────────────
+
+function startFresh() {
+  document.querySelectorAll('.blank, .free-input').forEach(input => {
+    input.disabled = false;
+    input.value = '';
+    input.classList.remove('correct-input', 'wrong-input');
+  });
+  document.querySelectorAll('.mc-btn').forEach(btn => {
+    btn.classList.remove('selected', 'correct-btn', 'wrong-btn');
+    btn.disabled = false;
+  });
+  document.querySelectorAll('.mc-blank').forEach(span => {
+    span.textContent = '___';
+    span.classList.add('mc-blank-empty');
+  });
+  document.querySelectorAll('.question').forEach(q => q.classList.remove('correct', 'wrong'));
+  document.querySelectorAll('.feedback').forEach(fb => { fb.className = 'feedback'; fb.textContent = ''; });
+  document.getElementById('results').classList.remove('show');
+  // Keep attempts label and Show Answers button state consistent with actual count
+  if (attemptCount >= MAX_ATTEMPTS) {
+    document.getElementById('attempts-label').textContent = `You've used all ${MAX_ATTEMPTS} attempts.`;
+    document.getElementById('show-answers-btn').style.display = 'inline-block';
+  } else {
+    document.getElementById('attempts-label').textContent =
+      attemptCount > 0 ? `Attempt ${attemptCount} of ${MAX_ATTEMPTS}` : '';
+    document.getElementById('show-answers-btn').style.display = 'none';
+  }
+  updateHintVisibility();
+  updateProgress();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+
+buildSection1();
+buildSection2();
+buildSection3();
+updateProgress();
+</script>
+</body>
+</html>
