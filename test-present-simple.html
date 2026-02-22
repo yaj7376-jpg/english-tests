@@ -578,6 +578,15 @@
     <div class="questions-list" id="s3-list"></div>
   </div>
 
+  <!-- ── SECTION 4 ── -->
+  <div class="section-card">
+    <div class="section-header">
+      <h2>Section 4 — Negation</h2>
+      <p>Choose the correct option for each gap.</p>
+    </div>
+    <div class="questions-list" id="s4-list"></div>
+  </div>
+
   <!-- Submit area -->
   <div class="submit-wrap">
     <span id="attempts-label"></span>
@@ -799,6 +808,39 @@ const section3 = [
   { statement: "Before I start work, <mark>I check my e-mail</mark>.",                        answers: ["What do you do before you start work?"] },
 ];
 
+const section4 = [
+  { parts: ["I", "coffee in the morning but I", "coffee in the evening."],
+    options: [["am drink","drink","drinks"], ["drink not","am not drink","don't drink"]],
+    answers: ["drink","don't drink"] },
+  { parts: ["Mark", "at 7am during the week but he", "at 7am at the weekend."],
+    options: [["get up","gets up","is get up"], ["don't get up","don't gets up","doesn't get up"]],
+    answers: ["gets up","doesn't get up"] },
+  { parts: ["My parents", "a dog but they", "a cat."],
+    options: [["has","have","are have"], ["doesn't have","don't have","haven't"]],
+    answers: ["have","don't have"] },
+  { parts: ["Ann", "to the gym but she", "to the cinema."],
+    options: [["go","goes","gos","is go"], ["doesn't goes","don't go","doesn't go"]],
+    answers: ["goes","doesn't go"] },
+  { parts: ["My wife", "children but she", "teenagers."],
+    options: [["teach","teaches","is a teacher","teachs"], ["doesn't teach","don't teach","isn't a teacher"]],
+    answers: ["teaches","doesn't teach"] },
+  { parts: ["Mrs Millborn", "sports programmes on TV but she", "TV series."],
+    options: [["is watch","watch","watches","watchs"], ["isn't watch","not watches","don't watch","doesn't watch"]],
+    answers: ["watches","doesn't watch"] },
+  { parts: ["Jack", "computer games a lot but he", "all the time."],
+    options: [["play","plays","plates","is play"], ["does play","doesn't play","doesn't plays","does't play"]],
+    answers: ["plays","doesn't play"] },
+  { parts: ["I", "English but I", "Japanese."],
+    options: [["speak","speaks","am speak","speek"], ["don't speek","am not speak","don't speak","not speak"]],
+    answers: ["speak","don't speak"] },
+  { parts: ["Thomas", "a lot but he", "on Sundays."],
+    options: [["study","studys","studies","studis"], ["don't study","doesn't study","doesn't studies"]],
+    answers: ["studies","doesn't study"] },
+  { parts: ["I", "by car but I", "by plane."],
+    options: [["travel","travels","is travel","travelling"], ["doesn't travel","don't travel","doesn't travels","isn't travel"]],
+    answers: ["travel","don't travel"] },
+];
+
 // ─────────────────────────────────────────────
 // STATE
 // ─────────────────────────────────────────────
@@ -911,14 +953,12 @@ function selectMC(btn) {
   const groupId = btn.dataset.group;
   document.querySelectorAll(`.mc-btn[data-group="${groupId}"]`).forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
-  // Reflect selection in the inline blank span
-  const match = groupId.match(/s2i(\d+)_(\d+)/);
-  if (match) {
-    const span = document.getElementById(`s2b${match[1]}_${match[2]}`);
-    if (span) {
-      span.textContent = btn.dataset.value;
-      span.classList.remove('mc-blank-empty');
-    }
+  // Reflect selection in the inline blank span (works for s2i and s4i groups)
+  const spanId = groupId.replace(/^(s\d)i/, '$1b');
+  const span = document.getElementById(spanId);
+  if (span) {
+    span.textContent = btn.dataset.value;
+    span.classList.remove('mc-blank-empty');
   }
   updateProgress();
 }
@@ -948,6 +988,42 @@ function buildSection3() {
   });
 }
 
+function buildSection4() {
+  const list = document.getElementById('s4-list');
+  section4.forEach((q, i) => {
+    totalAnswerable += q.answers.length;
+    const div = document.createElement('div');
+    div.className = 'question';
+    div.id = `s4q${i}`;
+
+    let sentenceHtml = '';
+    q.parts.forEach((part, pi) => {
+      sentenceHtml += part;
+      if (pi < q.answers.length) {
+        sentenceHtml += ` <span class="mc-blank mc-blank-empty" id="s4b${i}_${pi}">___</span> `;
+      }
+    });
+
+    let optionsHtml = '';
+    q.options.forEach((opts, pi) => {
+      const btns = opts.map(opt =>
+        `<button class="mc-btn" data-group="s4i${i}_${pi}" data-value="${opt.replace(/"/g,'&quot;')}"
+                 onclick="selectMC(this)">${opt}</button>`
+      ).join('');
+      optionsHtml += `<div class="mc-group"><div class="mc-label">Blank ${pi + 1}</div><div class="mc-options">${btns}</div></div>`;
+    });
+
+    div.innerHTML = `
+      <div class="q-num">${i + 1}</div>
+      <div class="q-body">
+        <div class="q-text">${sentenceHtml}</div>
+        ${optionsHtml}
+        <div class="feedback" id="s4f${i}"></div>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
 // ─────────────────────────────────────────────
 // PROGRESS
 // ─────────────────────────────────────────────
@@ -961,6 +1037,11 @@ function countAnswered() {
     });
   });
   section3.forEach((_, i) => { if (document.getElementById(`s3i${i}`)?.value.trim()) count++; });
+  section4.forEach((q, i) => {
+    q.answers.forEach((_, pi) => {
+      if (document.querySelector(`.mc-btn[data-group="s4i${i}_${pi}"].selected`)) count++;
+    });
+  });
   return count;
 }
 
@@ -1067,6 +1148,35 @@ function submitTest() {
     }
   });
 
+  // Section 4
+  section4.forEach((q, i) => {
+    let qCorrect = true;
+    q.answers.forEach((answer, pi) => {
+      total++;
+      const selectedBtn = document.querySelector(`.mc-btn[data-group="s4i${i}_${pi}"].selected`);
+      const val = selectedBtn ? normalize(selectedBtn.dataset.value) : '';
+      const ok  = normalize(answer) === val;
+      if (ok) {
+        correct++;
+        if (selectedBtn) selectedBtn.classList.add('correct-btn');
+      } else {
+        qCorrect = false;
+        if (selectedBtn) selectedBtn.classList.add('wrong-btn');
+      }
+    });
+    const row = document.getElementById(`s4q${i}`);
+    const fb  = document.getElementById(`s4f${i}`);
+    if (qCorrect) {
+      row.classList.add('correct');
+      fb.textContent = '✓ Correct';
+      fb.className = 'feedback show correct';
+    } else {
+      row.classList.add('wrong');
+      fb.textContent = '✗ Not quite — try again.';
+      fb.className = 'feedback show wrong';
+    }
+  });
+
   // Update attempts label
   const remaining = MAX_ATTEMPTS - attemptCount;
   if (remaining > 0) {
@@ -1123,6 +1233,25 @@ function revealAnswers() {
     const fb    = document.getElementById(`s3f${i}`);
     if (input.classList.contains('wrong-input')) {
       fb.innerHTML = `Answer: <strong>${q.answers[0]}</strong>`;
+      fb.className = 'feedback show wrong';
+    }
+  });
+
+  // Section 4
+  section4.forEach((q, i) => {
+    let hasWrong = false;
+    q.answers.forEach((answer, pi) => {
+      const selectedBtn = document.querySelector(`.mc-btn[data-group="s4i${i}_${pi}"].selected`);
+      if (selectedBtn && selectedBtn.classList.contains('wrong-btn')) {
+        hasWrong = true;
+        document.querySelectorAll(`.mc-btn[data-group="s4i${i}_${pi}"]`).forEach(b => {
+          if (normalize(b.dataset.value) === normalize(answer)) b.classList.add('correct-btn');
+        });
+      }
+    });
+    if (hasWrong) {
+      const fb = document.getElementById(`s4f${i}`);
+      fb.textContent = '✗ The correct answer is highlighted above.';
       fb.className = 'feedback show wrong';
     }
   });
@@ -1234,6 +1363,7 @@ function startFresh() {
 buildSection1();
 buildSection2();
 buildSection3();
+buildSection4();
 updateProgress();
 </script>
 </body>
